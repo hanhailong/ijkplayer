@@ -28,13 +28,14 @@
 
 @interface IJKSDLAudioQueueController : NSObject
 
-- (id)initWithAudioSpec:(SDL_AudioSpec *)aSpec;
+- (id)initWithAudioSpec:(const SDL_AudioSpec *)aSpec;
 
 - (void)play;
 - (void)pause;
 - (void)flush;
 - (void)stop;
 - (void)close;
+- (void)setPlaybackRate:(float)playbackRate;
 
 @property (nonatomic, readonly) SDL_AudioSpec spec;
     

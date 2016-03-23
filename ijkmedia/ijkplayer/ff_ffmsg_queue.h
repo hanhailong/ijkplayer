@@ -48,7 +48,6 @@ typedef struct MessageQueue {
     int alloc_count;
 } MessageQueue;
 
-// TODO: 9 msg pool
 inline static int msg_queue_put_private(MessageQueue *q, AVMessage *msg)
 {
     AVMessage *msg1;
@@ -70,13 +69,12 @@ inline static int msg_queue_put_private(MessageQueue *q, AVMessage *msg)
 #ifdef FFP_SHOW_MSG_RECYCLE
     int total_count = q->recycle_count + q->alloc_count;
     if (!(total_count % 10)) {
-        ALOGE("msg-recycle \t%d + \t%d = \t%d\n", q->recycle_count, q->alloc_count, total_count);
+        av_log(NULL, AV_LOG_DEBUG, "msg-recycle \t%d + \t%d = \t%d\n", q->recycle_count, q->alloc_count, total_count);
     }
 #endif
 #endif
     if (!msg1)
         return -1;
-    // ALOGE("msg-recycle %d, %d, %d\n", msg->what, msg->arg1, msg->arg2);
 
     *msg1 = *msg;
     msg1->next = NULL;
@@ -244,8 +242,10 @@ inline static int msg_queue_get(MessageQueue *q, AVMessage *msg, int block)
 
 inline static void msg_queue_remove(MessageQueue *q, int what)
 {
-    AVMessage **p_msg, *msg, *last_msg = q->first_msg;
+    AVMessage **p_msg, *msg, *last_msg;
     SDL_LockMutex(q->mutex);
+
+    last_msg = q->first_msg;
 
     if (!q->abort_request && q->first_msg) {
         p_msg = &q->first_msg;
@@ -253,17 +253,15 @@ inline static void msg_queue_remove(MessageQueue *q, int what)
             msg = *p_msg;
 
             if (msg->what == what) {
-                // ALOGE("remove msg %d", msg->what);
                 *p_msg = msg->next;
-                p_msg = &msg->next;
 #ifdef FFP_MERGE
                 av_free(msg);
 #else
                 msg->next = q->recycle_msg;
                 q->recycle_msg = msg;
 #endif
+                q->nb_messages--;
             } else {
-                // ALOGE("retain msg %d", msg->what);
                 last_msg = msg;
                 p_msg = &msg->next;
             }
